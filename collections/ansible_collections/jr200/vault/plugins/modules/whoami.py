@@ -55,9 +55,9 @@ def run_module():
 def _get_token_info(p, result):
 
     if not p['cached_token']:
-        result['client_token'] = None
+        result['token_info'] = None
     elif not path.exists(p['cached_token_path']):
-        result['client_token'] = None
+        result['token_info'] = None
     else:
         with open(p['cached_token_path'], 'rt') as fp:
             persisted_token = fp.read()
@@ -70,9 +70,10 @@ def _get_token_info(p, result):
             {"token": persisted_token})
 
         if 'errors' in token_info:
-            result['client_token'] = None
+            result['token_info'] = None
         else:
-            result['client_token'] = token_info
+            result['persisted_token'] = persisted_token
+            result['token_info'] = token_info
 
 
 def main():

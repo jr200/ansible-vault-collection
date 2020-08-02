@@ -11,6 +11,7 @@ from ansible.utils.vars import merge_hash
 from getpass import getpass
 from os import environ, path
 import sys
+from json import dumps
 
 display = Display()
 
@@ -38,55 +39,53 @@ class ActionModule(ActionBase):
         self._login_method = args['method'].lower()
         self._stdin = args['secret_stdin']
 
-        if self._try_get_persisted_token(args, result):
-            pass
-        elif 'ldap' == self._login_method:
+        if args['cached_token']:
+            whoami_args = {k: args[k] for k in ('cached_token', 'cached_token_path', 'vault_addr', 'vault_cacert')}
+            whoami_response = self._execute_module("jr200.vault.whoami", module_args=whoami_args, tmp=tmp, task_vars=task_vars)
+
+        # if a secret is not supplied, try to use the cached one, else prompt for it 
+        # if a secret is supplied, always use it
+
+        if not args['secret']:
+            if args['cached_token'] and self._is_persisted_token_valid(args, whoami_response):
+                args['secret'] = whoami_response['persisted_token']
+                args['method'] = 'token'
+            else:
+                args['secret'] = self._prompt_for_secret(args)
+
+        if 'ldap' == self._login_method:
             self.auth_ldap(args, result)
+            result['changed'] = True
         elif 'token' == self._login_method:
             self.auth_token(args, result)
+            result['changed'] = True
         else:
             raise AnsibleError("Failed to authenticate.")
 
-        if args['cached_token'] and 'errors' not in result:
+        self._display.vvvv(dumps(result))
+
+        if args['cached_token'] and 'failed' not in result:
             with open(args['cached_token_path'], 'wt') as fp:
                 fp.writelines(result['client_token'])
 
         return result
 
-    def _prompt_for_secret(self, msg):
+    def _prompt_for_secret(self, p):
+        if 'ldap' == p['method']:
+            msg = f"Enter {p['method'].upper()} password for {p['username']}: "
+        else:
+            msg = f"Login {p['method'].upper()}: "
+
         prev_stdin = sys.stdin
         sys.stdin = open(self._stdin)
         secret = getpass(msg).strip()
         sys.stdin = prev_stdin
         return secret
 
-    def _try_get_persisted_token(self, p, result):
-
-        if not p['cached_token']:
-            return False
-        if not path.exists(p['cached_token_path']):
-            return False
-
-        with open(p['cached_token_path'], 'rt') as fp:
-            persisted_token = fp.read()
-
-        cache_response = post(
-            "v1/auth/token/lookup",
-            persisted_token,
-            p['vault_addr'],
-            p['vault_cacert'],
-            {"token": persisted_token})
-
-        if self._is_persisted_token_valid(p['username'], cache_response):
-            result['client_token'] = persisted_token
-            return True
-
-        return False
-
-    def _is_persisted_token_valid(self, username, cache_response):
+    def _is_persisted_token_valid(self, p, token_info):
         try:
-            if self._login_method == 'ldap':
-                return username == cache_response['data']['meta']['username']
+            if p['method'] == 'ldap':
+                return p['username'] == token_info['data']['meta']['username']
         except (KeyError, TypeError):
             pass
 
