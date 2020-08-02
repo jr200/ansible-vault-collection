@@ -1,28 +1,45 @@
 - hosts: localhost
   vars:
     production_vault_url: http://127.0.0.1:8200
+    production_vault_cacert: /etc/ssl/certs/ca-certificates.crt
   tasks:
-    # - name: LDAP login to vault
-    #   jr200.vault.login:
-    #     method: ldap
-
     - name: TOKEN login to vault
       jr200.vault.login:
         vault_addr: "{{ production_vault_url }}"
+        vault_cacert: "{{ production_vault_cacert }}"
         secret: s.3eWjCvPK1v787A6mIITaOnis
       register: vault_credential
 
-    - debug:
-        var: vault_credential
+    - name: test TOKEN lookup_self
+      jr200.vault.lookup_self:
+        vault_addr: "{{ production_vault_url }}"
+        vault_cacert: "{{ production_vault_cacert }}"
 
+    - name: USERPASS login to vault
+      jr200.vault.login:
+        method: userpass
+        username: test
+
+    - name: test USERPASS lookup_self
+      jr200.vault.lookup_self:
+        vault_addr: "{{ production_vault_url }}"
+        vault_cacert: "{{ production_vault_cacert }}"
+
+    - name: cached USERPASS login to vault
+      jr200.vault.login:
+        method: userpass
+        username: test
+    # - name: LDAP login to vault
+    #   jr200.vault.login:
+    #     method: ldap
     - name: get secret
       jr200.vault.kv:
         vault_addr: "{{ production_vault_url }}"
+        vault_cacert: "{{ production_vault_cacert }}"
         secret_path: test
         secret_version: 1
         client_token: "{{ vault_credential.client_token }}"
       register: kv_result
-
     - name: print secret
       debug:
         var: kv_result

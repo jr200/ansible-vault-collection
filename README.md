@@ -17,7 +17,6 @@ ansible-galaxy collection init hashicorp.vault --init-path ./collections/ansible
 - kv write to file (on remote machine)
 - kv - output fact (should be on remote machine)
 - login - output fact (should be on remote machine)
-- some logins should execute on remote
 - should slurp file from remote
 - unseal
 - /etc/sudoers.d/<username>
@@ -29,6 +28,9 @@ ansible-galaxy collection init hashicorp.vault --init-path ./collections/ansible
 - facts are cached 
   - maybe leaking credentials with kv?
   - read about cache plugin
+- cert support
+- 'output_fact_name': None
+
 
 ## Tips for writing modules/plugins
 - set strategy to debug, (default is linear)

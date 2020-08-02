@@ -43,7 +43,7 @@ def run_module():
         supports_check_mode=True
     )
 
-    _set_auth_path(module.params)
+    _update_auth_path(module.params)
 
     if '__CACHED' == module.params['method']:
         auth_cached(module.params, result)
@@ -65,12 +65,12 @@ def run_module():
             fp.writelines(result['client_token'])
 
     if 'errors' in result:
-        module.fail_json(msg='Failed to extract id of vault user.', **result)
+        module.fail_json(msg='Failed to authenticate with vault.', **result)
 
     module.exit_json(**result)
 
 
-def _set_auth_path(p):
+def _update_auth_path(p):
     if not p['auth_path']:
         m = p['method']
         p['auth_path'] = {
