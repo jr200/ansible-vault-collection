@@ -1,0 +1,28 @@
+- hosts: localhost
+  vars:
+    production_vault_url: http://127.0.0.1:8200
+  tasks:
+    # - name: LDAP login to vault
+    #   jr200.vault.login:
+    #     method: ldap
+
+    - name: TOKEN login to vault
+      jr200.vault.login:
+        vault_addr: "{{ production_vault_url }}"
+        secret: s.74OQn9Nsho6gKRCPlUzVjaiD
+      register: vault_credential
+
+    - debug:
+        var: vault_credential
+
+    - name: get secret
+      jr200.vault.kv:
+        vault_addr: "{{ production_vault_url }}"
+        secret_path: test
+        secret_version: 3
+        client_token: "{{ vault_credential.client_token }}"
+      register: kv_result
+
+    - name: print secret
+      debug:
+        var: kv_result
