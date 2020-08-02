@@ -23,8 +23,18 @@ ansible-galaxy collection init hashicorp.vault --init-path ./collections/ansible
 - /etc/sudoers.d/<username>
 - antistrano for mtapps
 - docker test - ca chain
+- lookup plugin to retrieve secrets 
+  - remember always runs on controller
+  - always returns a list of items
+- facts are cached 
+  - maybe leaking credentials with kv?
+  - read about cache plugin
+
+## Tips for writing modules/plugins
+- set strategy to debug, (default is linear)
 
 ## References
+https://www.ansible.com/blog/how-to-extend-ansible-through-plugins
 https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins
 https://blog.artis3nal.com/2019-11-02-creating-a-custom-ansible-plugin/
 https://bugs.python.org/issue33725
