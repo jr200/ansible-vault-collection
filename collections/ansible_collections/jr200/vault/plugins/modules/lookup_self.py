@@ -27,7 +27,7 @@ def run_module():
 
     result = dict(
         changed=False,
-        failed='',
+        failed='False',
     )
 
     module = AnsibleModule(
@@ -37,14 +37,9 @@ def run_module():
 
     _get_token_info(module.params, result)
 
-    # during the execution of the module, if there is an exception or a
-    # conditional state that effectively causes a failure, run
-    # AnsibleModule.fail_json() to pass in the message and the result
     if 'errors' in result:
         module.fail_json(msg='Failed to extract id of vault user.', **result)
 
-    # in the event of a successful module execution, you will want to
-    # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
 
 
