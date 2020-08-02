@@ -3,6 +3,8 @@ __metaclass__ = type
 
 from ansible.utils.display import Display
 
+from ansible.errors import AnsibleError
+
 from ansible_collections.jr200.vault.plugins.module_utils.url import post
 from ansible.utils.vars import merge_hash
 
@@ -42,6 +44,8 @@ class ActionModule(ActionBase):
             self.auth_ldap(args, result)
         elif 'token' == self._login_method:
             self.auth_token(args, result)
+        else:
+            raise AnsibleError("Failed to authenticate.")
 
         if args['cached_token'] and 'errors' not in result:
             with open(args['cached_token_path'], 'wt') as fp:
