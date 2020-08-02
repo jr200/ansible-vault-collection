@@ -4,8 +4,7 @@ from ansible.module_utils.basic import AnsibleModule
 __metaclass__ = type
 
 from ansible.utils.display import Display
-from ansible_collections.jr200.vault.plugins.module_utils.url import post
-
+from ansible_collections.jr200.vault.plugins.module_utils.url import get
 
 from os import environ, path
 
@@ -26,7 +25,7 @@ def run_module():
         vault_cacert=dict(type='str', required=False, default=None),
         cached_token=dict(type='bool', required=False, default=True),
         cached_token_path=dict(type='str', required=False,
-                               default=f"{environ['HOME']}/.vault-token")
+                               default="%s/.vault-token" % environ['HOME'])
     )
 
     result = dict(
@@ -62,18 +61,19 @@ def _get_token_info(p, result):
         with open(p['cached_token_path'], 'rt') as fp:
             persisted_token = fp.read()
 
-        token_info = post(
-            "v1/auth/token/lookup",
+        token_info = get(
+            "auth/token/lookup-self",
             persisted_token,
             p['vault_addr'],
             p['vault_cacert'],
-            {"token": persisted_token})
+            "token_info"
+            )
 
         if 'errors' in token_info:
-            result['token_info'] = None
+            result['errors'] = token_info['errors']
         else:
             result['persisted_token'] = persisted_token
-            result['token_info'] = token_info
+            result['token_info'] = token_info['token_info']
 
 
 def main():

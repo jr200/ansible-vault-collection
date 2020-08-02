@@ -28,12 +28,11 @@ def run_module():
         vault_cacert=dict(type='str', required=False, default=None),
         cached_token=dict(type='bool', required=False, default=True),
         cached_token_path=dict(type='str', required=False,
-                               default=f"{environ['HOME']}/.vault-token"),
+                               default="%s/.vault-token" % environ['HOME']),
         method=dict(type='str', required=False, default='token'),
         username=dict(type='str', required=False, default=None),
-        secret=dict(type='str', required=False, default=None),
+        secret=dict(type='str', required=False, default=None, no_log=True),
         secret_stdin=dict(type='str', required=False, default='/dev/tty'),
-        #   'output_fact_name': None
     )
 
     result = dict(
@@ -46,28 +45,28 @@ def run_module():
         supports_check_mode=True
     )
 
-    login_method = module.params['method'].lower()
-    if 'ldap' == login_method:
+    if '__CACHED' == module.params['method']:
+        auth_cached(module.params, result)
+        result['changed'] = False
+    elif 'LDAP' == module.params['method']:
         auth_ldap(module.params, result)
         result['changed'] = True
-    elif 'token' == login_method:
+    elif 'USERPASS' == module.params['method']:
+        auth_userpass(module.params, result)
+        result['changed'] = True
+    elif 'TOKEN' == module.params['method']:
         auth_token(module.params, result)
         result['changed'] = True
     else:
         raise AnsibleError("Failed to authenticate.")
 
-    if module.params['cached_token'] and 'failed' not in result:
+    if module.params['cached_token'] and not result['failed']:
         with open(module.params['cached_token_path'], 'wt') as fp:
             fp.writelines(result['client_token'])
 
-    # during the execution of the module, if there is an exception or a
-    # conditional state that effectively causes a failure, run
-    # AnsibleModule.fail_json() to pass in the message and the result
     if 'errors' in result:
         module.fail_json(msg='Failed to extract id of vault user.', **result)
 
-    # in the event of a successful module execution, you will want to
-    # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
 
 
@@ -82,11 +81,24 @@ def _login_did_error(response, result):
 
 def auth_ldap(p, result):
     response = post(
-        f"v1/auth/ldap/login/{p['username']}",
+        "auth/ldap/login/%s" % p['username'],
         None,
         p['vault_addr'],
         p['vault_cacert'],
-        payload={"password": p['secret']},
+        json_payload={"password": p['secret']},
+        )
+
+    if not _login_did_error(response, result):
+        result['client_token'] = response['auth']['client_token']
+
+
+def auth_userpass(p, result):
+    response = post(
+        "auth/userpass/login/%s" % p['username'],
+        None,
+        p['vault_addr'],
+        p['vault_cacert'],
+        json_payload={"password": p['secret']},
         )
 
     if not _login_did_error(response, result):
@@ -95,13 +107,17 @@ def auth_ldap(p, result):
 
 def auth_token(p, result):
     response = post(
-        "v1/auth/token/create",
+        "auth/token/create",
         p['secret'],
         p['vault_addr'],
         p['vault_cacert'])
 
     if not _login_did_error(response, result):
         result['client_token'] = response['auth']['client_token']
+
+
+def auth_cached(p, result):
+    result['client_token'] = p['secret']
 
 
 def main():

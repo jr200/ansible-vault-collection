@@ -23,7 +23,7 @@ def post(url_path, token, vault_addr, vault_cacert, json_payload=None):
         headers['X-Vault-Token'] = token
 
     try:
-        url = '/'.join([vault_addr, url_path])
+        url = '/'.join([vault_addr, 'v1', url_path])
         response = open_url(url, dumps(json_payload), headers, 'POST',
                             ca_path=vault_cacert)
         return loads(response.read().decode('utf-8'))

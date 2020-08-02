@@ -1,19 +1,12 @@
 from ansible.plugins.action import ActionBase
 __metaclass__ = type
 
-from ansible.utils.display import Display
-
-from ansible.errors import AnsibleError
-
-from ansible_collections.jr200.vault.plugins.module_utils.url import post
 from ansible.utils.vars import merge_hash
 
 from getpass import getpass
-from os import environ, path
-import sys
 from json import dumps
-
-display = Display()
+from os import environ
+import sys
 
 
 class ActionModule(ActionBase):
@@ -27,39 +20,44 @@ class ActionModule(ActionBase):
           'vault_addr': 'http://127.0.0.1:8200',
           'vault_cacert': None,
           'method': 'token',
-          'username': f"{environ['USER']}",
+          'username': environ['USER'],
           'secret': None,
           'secret_stdin': '/dev/tty',
           'cached_token': True,
-          'cached_token_path': f"{environ['HOME']}/.vault-token",
+          'cached_token_path': "%s/.vault-token" % environ['HOME'],
         }
 
         args = merge_hash(args, self._task.args)
-        self._stdin = args['secret_stdin']
+        args['method'] = args['method'].upper()
 
         if args['cached_token']:
-            token_lookup_args = {k: args[k] for k in ('cached_token', 'cached_token_path', 'vault_addr', 'vault_cacert')}
-            token_lookup_response = self._execute_module("jr200.vault.token_lookup", module_args=token_lookup_args, tmp=tmp, task_vars=task_vars)
+            lookup_args = {k: args[k] for k in ('cached_token', 'cached_token_path', 'vault_addr', 'vault_cacert')}
+            lookup_result = self._execute_module("jr200.vault.lookup_self", module_args=lookup_args, tmp=tmp, task_vars=task_vars)
+            self._display.vvvv("TOKEN_LOOKUP (module): %s" % dumps(lookup_result))
 
-        # if a secret is not supplied, try to use the cached one, else prompt for it 
         # if a secret is supplied, always use it
+        # else, try (i) use the cached one, (ii) prompt for the secret
 
         if not args['secret']:
-            if args['cached_token'] and self._is_persisted_token_valid(args, token_lookup_response):
-                args['secret'] = token_lookup_response['persisted_token']
-                args['method'] = 'token'
+            if args['cached_token'] and self._is_persisted_token_valid(args, lookup_result):
+                args['secret'] = lookup_result['persisted_token']
+                args['method'] = '__CACHED'
+
+                # don't need to re-cache token
+                args['cached_token'] = False
             else:
                 args['secret'] = self._prompt_for_secret(args)
 
         result = self._execute_module(module_args=args, tmp=tmp, task_vars=task_vars)
+        self._display.vvvv("LOGIN (module): %s" % dumps(args))
 
         return result
 
     def _prompt_for_secret(self, p):
-        if 'ldap' == p['method']:
-            msg = f"Enter {p['method'].upper()} password for {p['username']}: "
+        if p['method'] in {'LDAP', 'USERPASS'}:
+            msg = "Enter %s password for %s: " % (p['method'], p['username'])
         else:
-            msg = f"Login {p['method'].upper()}: "
+            msg = "Login %s: " % p['method']
 
         prev_stdin = sys.stdin
         sys.stdin = open(p['secret_stdin'])
@@ -69,9 +67,17 @@ class ActionModule(ActionBase):
 
     def _is_persisted_token_valid(self, p, token_info):
         try:
-            if p['method'] == 'ldap':
-                return p['username'] == token_info['data']['meta']['username']
-        except (KeyError, TypeError):
+            if token_info['token_info'] is None:
+                return False
+
+            found_path = token_info['token_info']['data']['path']
+
+            if p['method'] == 'LDAP':
+                return found_path == 'auth/ldap/login/%s' % p['username']
+
+            if p['method'] == 'USERPASS':
+                return found_path == 'auth/userpass/login/%s' % p['username']
+        except KeyError:
             pass
 
         return False
