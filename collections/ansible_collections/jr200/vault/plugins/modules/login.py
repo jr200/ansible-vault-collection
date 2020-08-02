@@ -3,7 +3,6 @@
 from ansible.module_utils.basic import AnsibleModule
 __metaclass__ = type
 
-from ansible.utils.display import Display
 from ansible_collections.jr200.vault.plugins.module_utils.url import post
 from ansible.utils.vars import merge_hash
 from ansible.errors import AnsibleError
@@ -17,8 +16,6 @@ ANSIBLE_METADATA = {
 }
 
 DOCUMENTATION = ""
-
-display = Display()
 
 
 def run_module():

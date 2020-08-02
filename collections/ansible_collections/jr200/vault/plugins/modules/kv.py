@@ -3,7 +3,6 @@
 from ansible.module_utils.basic import AnsibleModule
 __metaclass__ = type
 
-from ansible.utils.display import Display
 from ansible_collections.jr200.vault.plugins.module_utils.url import get
 from ansible.utils.vars import merge_hash
 
@@ -14,8 +13,6 @@ ANSIBLE_METADATA = {
 }
 
 DOCUMENTATION = ""
-
-display = Display()
 
 
 def run_module():
@@ -43,20 +40,13 @@ def run_module():
 
     the_secret = _lookup_secret(module.params)
 
-    # manipulate or modify the state as needed (this is going to be the
-    # part where your module will do what it needs to do)
     result['changed'] = False
     result['secret_path'] = module.params['secret_path']
     result = merge_hash(result, the_secret)
 
-    # during the execution of the module, if there is an exception or a
-    # conditional state that effectively causes a failure, run
-    # AnsibleModule.fail_json() to pass in the message and the result
     if 'errors' in result:
         module.fail_json(msg='Unable to retrieve secret.', **result)
 
-    # in the event of a successful module execution, you will want to
-    # simple AnsibleModule.exit_json(), passing the key/value results
     module.exit_json(**result)
 
 
