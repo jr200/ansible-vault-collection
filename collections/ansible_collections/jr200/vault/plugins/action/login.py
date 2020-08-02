@@ -77,6 +77,10 @@ class ActionModule(ActionBase):
 
             if p['method'] == 'USERPASS':
                 return found_path == 'auth/userpass/login/%s' % p['username']
+
+            if p['method'] == 'TOKEN':
+                # opaqueness: token-based logins are never persisted.
+                return False
         except KeyError:
             pass
 
