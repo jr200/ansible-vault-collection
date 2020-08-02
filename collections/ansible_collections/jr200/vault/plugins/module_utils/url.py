@@ -17,7 +17,7 @@ def get(url_path, token, vault_addr, vault_cacert, response_name):
         return {'errors': to_text(e)}
 
 
-def post(url_path, token, vault_addr, vault_cacert, json_payload=None):
+def post(url_path, token, vault_addr, vault_cacert, json_payload=None, cert_file=None, cert_key_file=None):
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     if token:
         headers['X-Vault-Token'] = token
@@ -25,7 +25,10 @@ def post(url_path, token, vault_addr, vault_cacert, json_payload=None):
     try:
         url = '/'.join([vault_addr, 'v1', url_path])
         response = open_url(url, dumps(json_payload), headers, 'POST',
-                            ca_path=vault_cacert)
+                            ca_path=vault_cacert,
+                            client_cert=cert_file,
+                            client_key=cert_key_file)
+
         return loads(response.read().decode('utf-8'))
 
     except Exception as e:

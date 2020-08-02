@@ -23,6 +23,8 @@ class ActionModule(ActionBase):
           'username': environ['USER'],
           'secret': None,
           'secret_stdin': '/dev/tty',
+          'cert_file': None,
+          'cert_key_file': None,
           'cached_token': True,
           'cached_token_path': "%s/.vault-token" % environ['HOME'],
         }
@@ -56,8 +58,10 @@ class ActionModule(ActionBase):
     def _prompt_for_secret(self, p):
         if p['method'] in {'LDAP', 'USERPASS'}:
             msg = "Enter %s password for %s: " % (p['method'], p['username'])
-        else:
+        elif p['method'] in {'TOKEN'}:
             msg = "Login %s: " % p['method']
+        else:
+            return None
 
         prev_stdin = sys.stdin
         sys.stdin = open(p['secret_stdin'])
@@ -78,8 +82,9 @@ class ActionModule(ActionBase):
             if p['method'] == 'USERPASS':
                 return found_path == 'auth/userpass/login/%s' % p['username']
 
-            if p['method'] == 'TOKEN':
-                # opaqueness: token-based logins are never persisted.
+            if p['method'] in {'CERT', 'TOKEN'}:
+                # token-based logins are never persisted (opaqueness).
+                # cert-based logins are not interactive.
                 return False
         except KeyError:
             pass

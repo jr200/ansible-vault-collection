@@ -7,6 +7,7 @@ from ansible_collections.jr200.vault.plugins.module_utils.url import post
 from ansible.utils.vars import merge_hash
 from ansible.errors import AnsibleError
 
+from json import loads
 from os import environ
 
 ANSIBLE_METADATA = {
@@ -29,7 +30,9 @@ def run_module():
         method=dict(type='str', required=False, default='token'),
         username=dict(type='str', required=False, default=None),
         auth_path=dict(type='str', required=False, default=None),
-        secret=dict(type='str', required=False, default=None, no_log=True),
+        secret=dict(type='str', required=False, no_log=True),
+        cert_file=dict(type='str', required=False),
+        cert_key_file=dict(type='str', required=False),
         secret_stdin=dict(type='str', required=False, default='/dev/tty'),
     )
 
@@ -48,6 +51,9 @@ def run_module():
     if '__CACHED' == module.params['method']:
         auth_cached(module.params, result)
         result['changed'] = False
+    elif 'CERT' == module.params['method']:
+        auth_cert(module.params, result)
+        result['changed'] = True
     elif 'LDAP' == module.params['method']:
         auth_ldap(module.params, result)
         result['changed'] = True
@@ -74,6 +80,7 @@ def _update_auth_path(p):
     if not p['auth_path']:
         m = p['method']
         p['auth_path'] = {
+            'CERT': 'auth/cert/login',
             'LDAP': 'auth/ldap/login',
             'USERPASS': 'auth/userpass/login',
             'TOKEN': 'auth/token/create',
@@ -84,7 +91,8 @@ def _update_auth_path(p):
 def _login_did_error(response, result):
     if 'errors' in response:
         result['failed'] = True
-        result = merge_hash(result, response)
+        result.update(response)
+        # result = merge_hash(result, response)
         return True
 
     return False
@@ -116,9 +124,22 @@ def auth_userpass(p, result):
         result['client_token'] = response['auth']['client_token']
 
 
+def auth_cert(p, result):
+    response = post(
+        p['auth_path'],
+        None,
+        p['vault_addr'],
+        p['vault_cacert'],
+        p['cert_file'],
+        p['cert_key_file'])
+
+    if not _login_did_error(response, result):
+        result['client_token'] = response['auth']['client_token']
+
+
 def auth_token(p, result):
     response = post(
-        "auth/token/create",
+        p['auth_path'],
         p['secret'],
         p['vault_addr'],
         p['vault_cacert'])
