@@ -28,6 +28,7 @@ def run_module():
                                default="%s/.vault-token" % environ['HOME']),
         method=dict(type='str', required=False, default='token'),
         username=dict(type='str', required=False, default=None),
+        auth_path=dict(type='str', required=False, default=None),
         secret=dict(type='str', required=False, default=None, no_log=True),
         secret_stdin=dict(type='str', required=False, default='/dev/tty'),
     )
@@ -41,6 +42,8 @@ def run_module():
         argument_spec=module_args,
         supports_check_mode=True
     )
+
+    _set_auth_path(module.params)
 
     if '__CACHED' == module.params['method']:
         auth_cached(module.params, result)
@@ -67,6 +70,17 @@ def run_module():
     module.exit_json(**result)
 
 
+def _set_auth_path(p):
+    if not p['auth_path']:
+        m = p['method']
+        p['auth_path'] = {
+            'LDAP': 'auth/ldap/login',
+            'USERPASS': 'auth/userpass/login',
+            'TOKEN': 'auth/token/create',
+            '__CACHED': None
+        }[m]
+
+
 def _login_did_error(response, result):
     if 'errors' in response:
         result['failed'] = True
@@ -78,7 +92,7 @@ def _login_did_error(response, result):
 
 def auth_ldap(p, result):
     response = post(
-        "auth/ldap/login/%s" % p['username'],
+        "%s/%s" % (p['auth_path'], p['username']),
         None,
         p['vault_addr'],
         p['vault_cacert'],
@@ -91,7 +105,7 @@ def auth_ldap(p, result):
 
 def auth_userpass(p, result):
     response = post(
-        "auth/userpass/login/%s" % p['username'],
+        "%s/%s" % (p['auth_path'], p['username']),
         None,
         p['vault_addr'],
         p['vault_cacert'],
