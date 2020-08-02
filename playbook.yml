@@ -9,7 +9,7 @@
     - name: TOKEN login to vault
       jr200.vault.login:
         vault_addr: "{{ production_vault_url }}"
-        secret: s.74OQn9Nsho6gKRCPlUzVjaiD
+        secret: s.3eWjCvPK1v787A6mIITaOnis
       register: vault_credential
 
     - debug:
@@ -19,7 +19,7 @@
       jr200.vault.kv:
         vault_addr: "{{ production_vault_url }}"
         secret_path: test
-        secret_version: 3
+        secret_version: 1
         client_token: "{{ vault_credential.client_token }}"
       register: kv_result
 

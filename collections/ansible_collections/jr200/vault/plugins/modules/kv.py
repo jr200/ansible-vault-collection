@@ -5,7 +5,7 @@ __metaclass__ = type
 
 from ansible.utils.display import Display
 from ansible_collections.jr200.vault.plugins.module_utils.url import get
-
+from ansible.utils.vars import merge_hash
 
 ANSIBLE_METADATA = {
     'metadata_version': '0.1',
@@ -22,9 +22,7 @@ def run_module():
     # define available arguments/parameters a user can pass to the module
     module_args = dict(
         vault_addr=dict(type='str', required=True),
-        vault_cacert=dict(type='str',
-                          required=False,
-                          default='/etc/ssl/certs/ca-certificates.crt'),
+        vault_cacert=dict(type='str', required=False, default=None),
         client_token=dict(type='str', required=True, no_log=True),
         kv_engine_path=dict(type='str', required=False, default='secret/data'),
         secret_path=dict(type='str', required=True),
@@ -49,7 +47,7 @@ def run_module():
     # part where your module will do what it needs to do)
     result['changed'] = False
     result['secret_path'] = module.params['secret_path']
-    result.update(the_secret)
+    result = merge_hash(result, the_secret)
 
     # during the execution of the module, if there is an exception or a
     # conditional state that effectively causes a failure, run

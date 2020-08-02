@@ -4,6 +4,7 @@ __metaclass__ = type
 from ansible.utils.display import Display
 
 from ansible_collections.jr200.vault.plugins.module_utils.url import post
+from ansible.utils.vars import merge_hash
 
 from getpass import getpass
 from os import environ, path
@@ -21,7 +22,7 @@ class ActionModule(ActionBase):
 
         args = {
           'vault_addr': 'http://127.0.0.1:8200',
-          'vault_cacert': '/etc/ssl/certs/ca-certificates.crt',
+          'vault_cacert': None,
           'method': 'token',
           'username': f"{environ['USER']}",
           'secret': None,
@@ -31,7 +32,7 @@ class ActionModule(ActionBase):
           'output_fact_name': None
         }
 
-        args.update(self._task.args)
+        args = merge_hash(args, self._task.args)
         self._login_method = args['method'].lower()
         self._stdin = args['secret_stdin']
 
@@ -90,7 +91,7 @@ class ActionModule(ActionBase):
     def _login_did_error(self, response, result):
         if 'errors' in response:
             result['failed'] = True
-            result.update(response)
+            result = merge_hash(result, response)
             return True
 
         return False
