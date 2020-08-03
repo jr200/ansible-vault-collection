@@ -3,7 +3,7 @@
 from ansible.module_utils.basic import AnsibleModule
 __metaclass__ = type
 
-from ansible_collections.jr200.vault.plugins.module_utils.url import post
+from ansible_collections.jr200.vault.plugins.module_utils.url import post, put
 from ansible.utils.vars import merge_hash
 from ansible.errors import AnsibleError
 
@@ -125,7 +125,7 @@ def auth_userpass(p, result):
 
 
 def auth_cert(p, result):
-    response = post(
+    response = put(
         p['auth_path'],
         None,
         p['vault_addr'],
