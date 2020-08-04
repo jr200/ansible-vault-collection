@@ -1,2 +1,4 @@
 ansible
+docker
 flake8
+molecule

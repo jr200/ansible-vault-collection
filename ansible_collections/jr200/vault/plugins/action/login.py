@@ -84,7 +84,7 @@ class ActionModule(ActionBase):
 
             if p['method'] in {'CERT', 'TOKEN'}:
                 # token-based logins are never persisted (opaqueness).
-                # cert-based logins are not interactive.
+                # cert-based logins are not interactive - maybe should allow this still, but just fail?.
                 return False
         except KeyError:
             pass
