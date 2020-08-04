@@ -1,7 +1,19 @@
 ---
 - name: Converge
   hosts: all
+  collections:
+    - jr200.vault.login
+  vars:
+    vault_addr: http://127.0.0.1:8200
+    vault_cacert: /etc/ssl/certs/ca-certificates.crt
   tasks:
-    - name: "Include ansible-vault-collection"
-      include_role:
-        name: "ansible-vault-collection"
+    - name: TOKEN login to vault
+      jr200.vault.login:
+        vault_addr: "{{ vault_addr }}"
+        vault_cacert: "{{ vault_cacert }}"
+        secret: s.l2OCIFcDZv5qVFWnuBOW7GL7
+      register: vault_credential
+  # tasks:
+  #   - name: "Include ansible-vault-collection"
+  #     include_role:
+  #       name: "ansible-vault-collection"
