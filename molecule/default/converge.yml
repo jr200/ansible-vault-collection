@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include ansible-vault-collection"
+      include_role:
+        name: "ansible-vault-collection"
